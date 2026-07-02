@@ -22,3 +22,8 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # This repo is only intended for installation as a HACS custom
+          # repository, not submission to the default HACS store, so skip
+          # the store-inclusion-only "brands" check (requires a PR against
+          # home-assistant/brands).
+          ignore: brands
