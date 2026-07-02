@@ -1,0 +1,12 @@
+{
+  "domain": "globird_zerohero",
+  "name": "GloBird ZEROHERO",
+  "codeowners": ["@andrewgould"],
+  "config_flow": true,
+  "documentation": "https://github.com/andrewgould/ha-globird-zerohero",
+  "issue_tracker": "https://github.com/andrewgould/ha-globird-zerohero/issues",
+  "iot_class": "calculated",
+  "integration_type": "service",
+  "requirements": [],
+  "version": "0.1.0"
+}

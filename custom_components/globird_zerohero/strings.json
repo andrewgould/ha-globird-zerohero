@@ -1,0 +1,204 @@
+{
+  "title": "GloBird ZEROHERO",
+  "config": {
+    "step": {
+      "user": {
+        "title": "GloBird ZEROHERO",
+        "description": "Set up your ZEROHERO plan. You'll enter your import/export rate schedule next -- have your bill or GloBird's price fact sheet handy.",
+        "data": {
+          "plan_label": "Plan label",
+          "daily_supply_charge_cents": "Daily supply charge (c/day)",
+          "enable_bonus_features": "Track ZeroHero credit, ZeroWastedSolar boost and ZeroLimits critical peak events"
+        }
+      },
+      "import_schedule": {
+        "title": "Import (grid consumption) price schedule",
+        "description": "Enter each time-of-use window for what you pay to import from the grid. Leave a window's rate blank if unused. Windows must cover the full 24 hours with no gaps or overlaps.",
+        "data": {
+          "imp_0_start": "Window 1 start (HH:MM, blank = unused)",
+          "imp_0_end": "Window 1 end (HH:MM)",
+          "imp_0_rate_c": "Window 1 rate (c/kWh)",
+          "imp_1_start": "Window 2 start (HH:MM, blank = unused)",
+          "imp_1_end": "Window 2 end (HH:MM)",
+          "imp_1_rate_c": "Window 2 rate (c/kWh)",
+          "imp_2_start": "Window 3 start (HH:MM, blank = unused)",
+          "imp_2_end": "Window 3 end (HH:MM)",
+          "imp_2_rate_c": "Window 3 rate (c/kWh)",
+          "imp_3_start": "Window 4 start (HH:MM, blank = unused)",
+          "imp_3_end": "Window 4 end (HH:MM)",
+          "imp_3_rate_c": "Window 4 rate (c/kWh)",
+          "imp_4_start": "Window 5 start (HH:MM, blank = unused)",
+          "imp_4_end": "Window 5 end (HH:MM)",
+          "imp_4_rate_c": "Window 5 rate (c/kWh)",
+          "imp_5_start": "Window 6 start (HH:MM, blank = unused)",
+          "imp_5_end": "Window 6 end (HH:MM)",
+          "imp_5_rate_c": "Window 6 rate (c/kWh)"
+        }
+      },
+      "export_schedule": {
+        "title": "Export (feed-in) price schedule",
+        "description": "Enter each time-of-use window for what you're paid to export to the grid. Leave a window's rate blank if unused. Windows must cover the full 24 hours with no gaps or overlaps.",
+        "data": {
+          "exp_0_start": "Window 1 start (HH:MM, blank = unused)",
+          "exp_0_end": "Window 1 end (HH:MM)",
+          "exp_0_rate_c": "Window 1 rate (c/kWh)",
+          "exp_1_start": "Window 2 start (HH:MM, blank = unused)",
+          "exp_1_end": "Window 2 end (HH:MM)",
+          "exp_1_rate_c": "Window 2 rate (c/kWh)",
+          "exp_2_start": "Window 3 start (HH:MM, blank = unused)",
+          "exp_2_end": "Window 3 end (HH:MM)",
+          "exp_2_rate_c": "Window 3 rate (c/kWh)",
+          "exp_3_start": "Window 4 start (HH:MM, blank = unused)",
+          "exp_3_end": "Window 4 end (HH:MM)",
+          "exp_3_rate_c": "Window 4 rate (c/kWh)",
+          "exp_4_start": "Window 5 start (HH:MM, blank = unused)",
+          "exp_4_end": "Window 5 end (HH:MM)",
+          "exp_4_rate_c": "Window 5 rate (c/kWh)",
+          "exp_5_start": "Window 6 start (HH:MM, blank = unused)",
+          "exp_5_end": "Window 6 end (HH:MM)",
+          "exp_5_rate_c": "Window 6 rate (c/kWh)"
+        }
+      },
+      "zerohero": {
+        "title": "ZeroHero credit",
+        "description": "GloBird pays a daily credit if your grid import stays under a threshold during the evening peak window.",
+        "data": {
+          "zerohero_threshold_kwh_per_hour": "Import threshold (kWh/hour)",
+          "zerohero_window_start": "Window start (HH:MM)",
+          "zerohero_window_end": "Window end (HH:MM)",
+          "zerohero_credit_amount_cents": "Credit amount (c/day)",
+          "zerohero_import_entity": "Your grid import power/energy sensor"
+        }
+      },
+      "zerowastedsolar": {
+        "title": "ZeroWastedSolar",
+        "description": "GloBird pays a boosted export rate for the first N kWh you export during the evening peak.",
+        "data": {
+          "zws_rate_cents": "Boosted export rate (c/kWh)",
+          "zws_cap_kwh": "Cap (kWh)",
+          "zws_window_start": "Window start (HH:MM)",
+          "zws_window_end": "Window end (HH:MM)",
+          "zws_export_entity": "Your solar export energy sensor"
+        }
+      },
+      "zerolimits": {
+        "title": "ZeroLimits critical peak events",
+        "description": "GloBird occasionally declares a critical peak event via the app (no public API). Either let this integration create its own toggle to flip on manually, or point it at an existing helper entity you already use for this.",
+        "data": {
+          "zerolimits_export_rate_cents": "Critical peak export rate (c/kWh)",
+          "zerolimits_import_surcharge_cents": "Critical peak import surcharge (c/kWh)",
+          "zerolimits_mode": "Critical peak toggle source",
+          "zerolimits_entity": "Existing helper entity (leave blank to use the built-in toggle)"
+        }
+      }
+    },
+    "error": {
+      "schedule_empty": "At least one window is required.",
+      "schedule_gap": "The windows you entered don't cover the full 24 hours -- there's a gap.",
+      "schedule_overlap": "Two or more windows overlap. Each window must be non-overlapping.",
+      "schedule_invalid_time": "One of the times entered isn't a valid HH:MM value."
+    },
+    "abort": {
+      "already_configured": "This GloBird ZEROHERO account is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "title": "GloBird ZEROHERO",
+        "description": "Set up your ZEROHERO plan. You'll enter your import/export rate schedule next -- have your bill or GloBird's price fact sheet handy.",
+        "data": {
+          "plan_label": "Plan label",
+          "daily_supply_charge_cents": "Daily supply charge (c/day)",
+          "enable_bonus_features": "Track ZeroHero credit, ZeroWastedSolar boost and ZeroLimits critical peak events"
+        }
+      },
+      "import_schedule": {
+        "title": "Import (grid consumption) price schedule",
+        "description": "Enter each time-of-use window for what you pay to import from the grid. Leave a window's rate blank if unused. Windows must cover the full 24 hours with no gaps or overlaps.",
+        "data": {
+          "imp_0_start": "Window 1 start (HH:MM, blank = unused)",
+          "imp_0_end": "Window 1 end (HH:MM)",
+          "imp_0_rate_c": "Window 1 rate (c/kWh)",
+          "imp_1_start": "Window 2 start (HH:MM, blank = unused)",
+          "imp_1_end": "Window 2 end (HH:MM)",
+          "imp_1_rate_c": "Window 2 rate (c/kWh)",
+          "imp_2_start": "Window 3 start (HH:MM, blank = unused)",
+          "imp_2_end": "Window 3 end (HH:MM)",
+          "imp_2_rate_c": "Window 3 rate (c/kWh)",
+          "imp_3_start": "Window 4 start (HH:MM, blank = unused)",
+          "imp_3_end": "Window 4 end (HH:MM)",
+          "imp_3_rate_c": "Window 4 rate (c/kWh)",
+          "imp_4_start": "Window 5 start (HH:MM, blank = unused)",
+          "imp_4_end": "Window 5 end (HH:MM)",
+          "imp_4_rate_c": "Window 5 rate (c/kWh)",
+          "imp_5_start": "Window 6 start (HH:MM, blank = unused)",
+          "imp_5_end": "Window 6 end (HH:MM)",
+          "imp_5_rate_c": "Window 6 rate (c/kWh)"
+        }
+      },
+      "export_schedule": {
+        "title": "Export (feed-in) price schedule",
+        "description": "Enter each time-of-use window for what you're paid to export to the grid. Leave a window's rate blank if unused. Windows must cover the full 24 hours with no gaps or overlaps.",
+        "data": {
+          "exp_0_start": "Window 1 start (HH:MM, blank = unused)",
+          "exp_0_end": "Window 1 end (HH:MM)",
+          "exp_0_rate_c": "Window 1 rate (c/kWh)",
+          "exp_1_start": "Window 2 start (HH:MM, blank = unused)",
+          "exp_1_end": "Window 2 end (HH:MM)",
+          "exp_1_rate_c": "Window 2 rate (c/kWh)",
+          "exp_2_start": "Window 3 start (HH:MM, blank = unused)",
+          "exp_2_end": "Window 3 end (HH:MM)",
+          "exp_2_rate_c": "Window 3 rate (c/kWh)",
+          "exp_3_start": "Window 4 start (HH:MM, blank = unused)",
+          "exp_3_end": "Window 4 end (HH:MM)",
+          "exp_3_rate_c": "Window 4 rate (c/kWh)",
+          "exp_4_start": "Window 5 start (HH:MM, blank = unused)",
+          "exp_4_end": "Window 5 end (HH:MM)",
+          "exp_4_rate_c": "Window 5 rate (c/kWh)",
+          "exp_5_start": "Window 6 start (HH:MM, blank = unused)",
+          "exp_5_end": "Window 6 end (HH:MM)",
+          "exp_5_rate_c": "Window 6 rate (c/kWh)"
+        }
+      },
+      "zerohero": {
+        "title": "ZeroHero credit",
+        "description": "GloBird pays a daily credit if your grid import stays under a threshold during the evening peak window.",
+        "data": {
+          "zerohero_threshold_kwh_per_hour": "Import threshold (kWh/hour)",
+          "zerohero_window_start": "Window start (HH:MM)",
+          "zerohero_window_end": "Window end (HH:MM)",
+          "zerohero_credit_amount_cents": "Credit amount (c/day)",
+          "zerohero_import_entity": "Your grid import power/energy sensor"
+        }
+      },
+      "zerowastedsolar": {
+        "title": "ZeroWastedSolar",
+        "description": "GloBird pays a boosted export rate for the first N kWh you export during the evening peak.",
+        "data": {
+          "zws_rate_cents": "Boosted export rate (c/kWh)",
+          "zws_cap_kwh": "Cap (kWh)",
+          "zws_window_start": "Window start (HH:MM)",
+          "zws_window_end": "Window end (HH:MM)",
+          "zws_export_entity": "Your solar export energy sensor"
+        }
+      },
+      "zerolimits": {
+        "title": "ZeroLimits critical peak events",
+        "description": "GloBird occasionally declares a critical peak event via the app (no public API). Either let this integration create its own toggle to flip on manually, or point it at an existing helper entity you already use for this.",
+        "data": {
+          "zerolimits_export_rate_cents": "Critical peak export rate (c/kWh)",
+          "zerolimits_import_surcharge_cents": "Critical peak import surcharge (c/kWh)",
+          "zerolimits_mode": "Critical peak toggle source",
+          "zerolimits_entity": "Existing helper entity (leave blank to use the built-in toggle)"
+        }
+      }
+    },
+    "error": {
+      "schedule_empty": "At least one window is required.",
+      "schedule_gap": "The windows you entered don't cover the full 24 hours -- there's a gap.",
+      "schedule_overlap": "Two or more windows overlap. Each window must be non-overlapping.",
+      "schedule_invalid_time": "One of the times entered isn't a valid HH:MM value."
+    }
+  }
+}
