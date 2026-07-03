@@ -70,11 +70,15 @@ def _window_schema(prefix: str, defaults: list[dict]) -> vol.Schema:
         rate_key = _slot_field(prefix, i, "rate_c")
         fields[vol.Optional(start_key, default=default[WINDOW_START] if default else "")] = str
         fields[vol.Optional(end_key, default=default[WINDOW_END] if default else "")] = str
-        # Always nullable, even for slots pre-filled with a default rate, so
-        # any slot -- including the defaults -- can be blanked out to disable it.
-        fields[vol.Optional(rate_key, default=default[WINDOW_RATE] if default else None)] = vol.Any(
-            vol.Coerce(float), None
-        )
+        # voluptuous_serialize (used to send the form to the HA frontend) can't
+        # represent vol.Any(Coerce(float), None), so slots without a real value
+        # get no `default` at all -- voluptuous then leaves the key out of the
+        # result entirely when it's left blank, rather than trying to coerce a
+        # None default through the float validator.
+        if default is not None:
+            fields[vol.Optional(rate_key, default=default[WINDOW_RATE])] = vol.Coerce(float)
+        else:
+            fields[vol.Optional(rate_key)] = vol.Coerce(float)
     return vol.Schema(fields)
 
 
@@ -170,6 +174,16 @@ def _zws_schema(defaults: dict) -> vol.Schema:
 
 
 def _zerolimits_schema(defaults: dict) -> vol.Schema:
+    # Same reasoning as the window rate fields above: no `default` at all when
+    # there isn't a real linked entity yet, so leaving it blank doesn't try to
+    # validate an empty string/None against EntitySelector (which
+    # voluptuous_serialize can't represent when wrapped in vol.Any anyway).
+    existing_entity = defaults.get(CONF_ZL_ENTITY)
+    entity_key = (
+        vol.Optional(CONF_ZL_ENTITY, default=existing_entity)
+        if existing_entity
+        else vol.Optional(CONF_ZL_ENTITY)
+    )
     return vol.Schema(
         {
             vol.Required(
@@ -183,11 +197,8 @@ def _zerolimits_schema(defaults: dict) -> vol.Schema:
             vol.Required(
                 CONF_ZL_MODE, default=defaults.get(CONF_ZL_MODE, ZL_MODE_INTERNAL)
             ): vol.In([ZL_MODE_INTERNAL, ZL_MODE_EXTERNAL]),
-            vol.Optional(CONF_ZL_ENTITY, default=defaults.get(CONF_ZL_ENTITY, "")): vol.Any(
-                selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain=["input_boolean", "binary_sensor"])
-                ),
-                "",
+            entity_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(domain=["input_boolean", "binary_sensor"])
             ),
         }
     )

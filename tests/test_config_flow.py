@@ -38,7 +38,6 @@ ZL_INPUT = {
     "zerolimits_export_rate_cents": 100.0,
     "zerolimits_import_surcharge_cents": 5.0,
     "zerolimits_mode": "internal",
-    "zerolimits_entity": "",
 }
 
 
@@ -97,12 +96,11 @@ async def test_import_schedule_gap_reshows_form_with_error(hass):
     result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
     assert result["step_id"] == "import_schedule"
 
-    # Leave a gap: only cover 00:00-10:00, rest of the day unset.
-    gapped = {"imp_0_start": "00:00", "imp_0_end": "10:00", "imp_0_rate_c": 25.5}
-    for i in range(1, 6):
-        gapped[f"imp_{i}_rate_c"] = None
-
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], gapped)
+    # Shift window 2's start later than window 1's default end (11:00),
+    # leaving 11:00-12:00 uncovered. Everything else stays at its default.
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"imp_1_start": "12:00"}
+    )
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "import_schedule"
     assert result["errors"]["base"] == "schedule_gap"
