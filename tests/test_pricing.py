@@ -135,6 +135,30 @@ def test_next_transition_falls_back_to_midnight_for_daily_reset():
     assert engine.next_transition(_dt(22)) == datetime(2026, 7, 2, 0, 0, tzinfo=UTC)
 
 
+def test_next_import_price_change_ignores_export_boundaries():
+    engine = _engine()
+    # 10:00 is an export-window boundary only; the import price holds 25.5
+    # until 11:00. Regression: the sensor used to report the 10:00 export edge.
+    assert engine.next_transition(_dt(9)) == _dt(10)
+    assert engine.next_import_price_change(_dt(9)) == _dt(11)
+
+
+def test_next_import_price_change_skips_midnight_when_rate_is_unchanged():
+    engine = _engine()
+    # 21:00-24:00 and 00:00-11:00 are both 25.5: midnight re-arms the timer
+    # for the daily counter reset but isn't a price change.
+    assert engine.next_transition(_dt(22)) == datetime(2026, 7, 2, 0, 0, tzinfo=UTC)
+    assert engine.next_import_price_change(_dt(22)) == _dt(11, d=2)
+
+
+def test_next_import_price_change_is_none_for_a_flat_import_rate():
+    flat = PricingEngine(
+        TouSchedule([TimeWindow(time(0, 0), time(0, 0), 30.0)]),
+        TouSchedule(EXPORT_WINDOWS),
+    )
+    assert flat.next_import_price_change(_dt(9)) is None
+
+
 def test_zerohero_status_pending_before_window():
     assert (
         zerohero_status(_dt(10), time(15, 0), time(21, 0), still_eligible=True) == ZH_STATUS_PENDING

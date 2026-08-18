@@ -14,7 +14,7 @@ Two existing projects were checked before building this and neither covers this 
   - Grid consumption cost -> "Use an entity with the current price" -> *Current import price*
   - Return to grid compensation -> "Use an entity with the current price" -> *Current export price*
 - Price tier label (Free / Off-peak / Peak / ZeroWastedSolar boost / Critical peak)
-- Next price change (timestamp)
+- Next price change (timestamp) -- the next time the **import** price actually changes. Export-window edges and window splits that keep the same rate (an off-peak block divided at midnight, say) aren't price changes, so they're not reported here. `unknown` if your import schedule is a single flat rate.
 - Daily supply charge (informational)
 - If you enable bonus tracking during setup:
   - ZeroHero credit status for today (pending / earned / missed)

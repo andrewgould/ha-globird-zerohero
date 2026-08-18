@@ -88,3 +88,37 @@ def test_next_boundary_after_wraps_to_next_day():
     schedule = TouSchedule(FULL_COVERAGE_WINDOWS)
     # After the last boundary of the day, wrap to the earliest boundary overall.
     assert schedule.next_boundary_after(time(23, 0)) == time(0, 0)
+
+
+def test_next_rate_change_after_skips_same_rate_boundaries():
+    # 21:00-24:00 and 00:00-11:00 are both 25.5, so midnight is a window
+    # boundary but not a price change: the next real change is 11:00.
+    schedule = TouSchedule(FULL_COVERAGE_WINDOWS)
+    assert schedule.next_rate_change_after(time(22, 0)) == time(11, 0)
+    assert schedule.next_rate_change_after(time(9, 0)) == time(11, 0)
+    assert schedule.next_rate_change_after(time(12, 0)) == time(14, 0)
+    assert schedule.next_rate_change_after(time(14, 30)) == time(15, 0)
+
+
+def test_next_rate_change_after_wraps_into_tomorrow():
+    # Every window is 20.0 except the 11:00-14:00 free one, so from the
+    # afternoon the next actual change is tomorrow morning's 11:00.
+    schedule = TouSchedule(
+        [
+            TimeWindow(time(0, 0), time(11, 0), 20.0),
+            TimeWindow(time(11, 0), time(14, 0), 0.0),
+            TimeWindow(time(14, 0), time(21, 0), 20.0),
+            TimeWindow(time(21, 0), time(0, 0), 20.0),
+        ]
+    )
+    assert schedule.next_rate_change_after(time(16, 0)) == time(11, 0)
+
+
+def test_next_rate_change_after_returns_none_for_flat_rate():
+    schedule = TouSchedule([TimeWindow(time(0, 0), time(0, 0), 25.5)])
+    assert schedule.next_rate_change_after(time(9, 0)) is None
+    # Split into two windows at the same rate: still no price change.
+    split = TouSchedule(
+        [TimeWindow(time(0, 0), time(12, 0), 25.5), TimeWindow(time(12, 0), time(0, 0), 25.5)]
+    )
+    assert split.next_rate_change_after(time(9, 0)) is None

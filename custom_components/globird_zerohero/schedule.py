@@ -88,6 +88,24 @@ class TouSchedule:
             return boundaries[0]
         return t
 
+    def next_rate_change_after(self, t: time) -> time | None:
+        """Return the next boundary strictly after `t` where the rate changes.
+
+        Unlike `next_boundary_after`, this skips boundaries that split two
+        windows charging the same rate -- those are window edges, not price
+        changes, and a user watching "when does my power get cheaper" doesn't
+        care about them. Wraps into tomorrow; returns None when the schedule
+        charges one rate all day and the price never changes.
+        """
+        current = self.rate_at(t)
+        boundaries = sorted({w.start for w in self.windows} | {w.end for w in self.windows})
+        # Walk in wrap-around order: today's remaining boundaries, then tomorrow's.
+        ordered = [b for b in boundaries if b > t] + [b for b in boundaries if b <= t]
+        for boundary in ordered:
+            if self.rate_at(boundary) != current:
+                return boundary
+        return None
+
     def validate(self) -> list[str]:
         """Return a list of error codes; empty list means the schedule is valid."""
         if not self.windows:

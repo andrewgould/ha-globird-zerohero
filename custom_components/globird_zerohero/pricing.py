@@ -118,10 +118,15 @@ class PricingEngine:
     def next_transition(self, now: datetime) -> datetime:
         """Earliest datetime after `now` at which any price/state input changes.
 
-        Includes import/export schedule boundaries, the ZeroWastedSolar
+        This drives the coordinator's recompute timer, so it is deliberately
+        over-inclusive: import/export schedule boundaries, the ZeroWastedSolar
         window edges, and midnight (for daily counter resets). Critical-peak
         toggles are event-driven, not schedule-driven, so they're not
         included here -- the coordinator recomputes immediately on toggle.
+
+        Do NOT surface this to users as "the next price change": most of these
+        boundaries don't change the import price. Use `next_import_price_change`
+        for that.
         """
         candidates: list[time] = [
             self.import_schedule.next_boundary_after(now.time()),
@@ -141,6 +146,20 @@ class PricingEngine:
             if candidate_dt < best:
                 best = candidate_dt
         return best
+
+    def next_import_price_change(self, now: datetime) -> datetime | None:
+        """Earliest datetime after `now` at which the *import* price changes.
+
+        This is the one that belongs in front of a user: it ignores export
+        boundaries, ZeroWastedSolar window edges and the midnight counter
+        reset, and skips import boundaries where the rate on both sides is
+        the same (e.g. an off-peak window split at midnight). Returns None
+        if the import schedule is a single flat rate all day.
+        """
+        boundary = self.import_schedule.next_rate_change_after(now.time())
+        if boundary is None:
+            return None
+        return _next_datetime_for_boundary(now, boundary)
 
 
 def zerohero_status(

@@ -141,7 +141,10 @@ class GlobirdNextPriceChangeSensor(GlobirdZeroHeroSensorBase):
 
     @property
     def native_value(self):
-        return self.data.next_transition
+        # The next *import price* change, not the next internal recompute:
+        # export-window edges and the midnight counter reset move the timer
+        # without changing what anyone pays.
+        return self.data.next_import_price_change
 
 
 class GlobirdDailySupplyChargeSensor(GlobirdZeroHeroSensorBase):

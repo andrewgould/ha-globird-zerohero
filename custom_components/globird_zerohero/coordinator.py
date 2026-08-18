@@ -117,6 +117,7 @@ class GlobirdZeroHeroData:
         self.export_price_c: float = 0.0
         self.price_tier: str = ""
         self.next_transition: datetime | None = None
+        self.next_import_price_change: datetime | None = None
         self.zh_status: str | None = None
         self.zws_remaining_kwh_value: float | None = None
         self.critical_peak_active: bool = False
@@ -307,7 +308,11 @@ class GlobirdZeroHeroData:
         else:
             self.zh_status = None
 
+        # Two different questions: when must we recompute (every boundary,
+        # including export-only ones), and when does the price the user is
+        # shown actually change. They are not the same instant.
         self.next_transition = self.engine.next_transition(now)
+        self.next_import_price_change = self.engine.next_import_price_change(now)
         self._reschedule()
         async_dispatcher_send(self.hass, self.signal)
 
