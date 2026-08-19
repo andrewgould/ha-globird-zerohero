@@ -1,4 +1,4 @@
-"""Sensor entities for GloBird ZEROHERO."""
+"""Sensor entities for the time-of-use tariff."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ from datetime import date
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import ExtraStoredData, RestoreEntity
@@ -15,20 +14,20 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CENTS_PER_DOLLAR,
-    CONF_ENABLE_BONUS,
-    CONF_PLAN_LABEL,
+    CONF_ENABLE_ZH,
+    CONF_ENABLE_ZWS,
     CONF_SUPPLY_CHARGE_C,
     CONF_ZH_WINDOW_START,
     CONF_ZWS_RATE_C,
-    DEFAULT_PLAN_LABEL,
     DOMAIN,
     TIER_CRITICAL_PEAK,
     TIER_FREE,
     TIER_OFF_PEAK,
     TIER_PEAK,
     TIER_ZWS_BOOST,
+    feature_enabled,
 )
-from .coordinator import GlobirdZeroHeroData
+from .coordinator import GlobirdZeroHeroData, build_device_info
 
 TIER_LABELS = {
     TIER_FREE: "Free",
@@ -61,11 +60,11 @@ async def async_setup_entry(
         GlobirdDailySupplyChargeSensor(entry, data),
     ]
 
-    if config.get(CONF_ENABLE_BONUS):
-        if config.get(CONF_ZH_WINDOW_START):
-            entities.append(GlobirdZeroHeroCreditStatusSensor(entry, data))
-        if config.get(CONF_ZWS_RATE_C) is not None:
-            entities.append(GlobirdZeroWastedSolarRemainingSensor(entry, data))
+    # GloBird plan extras: each one is opt-in and absent unless configured.
+    if feature_enabled(config, CONF_ENABLE_ZH) and config.get(CONF_ZH_WINDOW_START):
+        entities.append(GlobirdZeroHeroCreditStatusSensor(entry, data))
+    if feature_enabled(config, CONF_ENABLE_ZWS) and config.get(CONF_ZWS_RATE_C) is not None:
+        entities.append(GlobirdZeroWastedSolarRemainingSensor(entry, data))
 
     async_add_entities(entities)
 
@@ -79,12 +78,7 @@ class GlobirdZeroHeroSensorBase(SensorEntity):
         self.data = data
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_name = name
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=data.config.get(CONF_PLAN_LABEL, DEFAULT_PLAN_LABEL),
-            manufacturer="GloBird Energy",
-            model="ZEROHERO",
-        )
+        self._attr_device_info = build_device_info(entry, data.config)
 
     async def async_added_to_hass(self) -> None:
         self.async_on_remove(

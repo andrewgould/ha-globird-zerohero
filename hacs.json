@@ -1,6 +1,8 @@
 {
-  "name": "GloBird ZEROHERO",
+  "name": "Time-of-use tariff (GloBird ZEROHERO)",
   "render_readme": true,
   "homeassistant": "2024.6.0",
-  "zip_release": false
+  "zip_release": true,
+  "filename": "globird_zerohero.zip",
+  "hide_default_branch": true
 }

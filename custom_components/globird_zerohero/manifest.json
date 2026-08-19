@@ -1,12 +1,14 @@
 {
   "domain": "globird_zerohero",
-  "name": "GloBird ZEROHERO",
-  "codeowners": ["@andrewgould"],
+  "name": "Time-of-use tariff (GloBird ZEROHERO)",
+  "codeowners": [
+    "@andrewgould"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/andrewgould/ha-globird-zerohero",
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/andrewgould/ha-globird-zerohero/issues",
   "requirements": [],
-  "version": "0.1.0"
+  "version": "1.0.0"
 }

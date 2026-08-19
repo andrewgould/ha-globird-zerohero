@@ -2,12 +2,13 @@
 
 from datetime import datetime
 
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.globird_zerohero.const import (
-    CONF_ENABLE_BONUS,
+    CONF_ENABLE_ZWS,
     CONF_EXPORT_WINDOWS,
     CONF_IMPORT_WINDOWS,
     CONF_PLAN_LABEL,
@@ -18,7 +19,6 @@ from custom_components.globird_zerohero.const import (
 BASIC_DATA = {
     CONF_PLAN_LABEL: "Test Plan",
     CONF_SUPPLY_CHARGE_C: 100.0,
-    CONF_ENABLE_BONUS: False,
     CONF_IMPORT_WINDOWS: [
         {"start": "00:00", "end": "12:00", "rate": 20.0},
         {"start": "12:00", "end": "24:00", "rate": 40.0},
@@ -37,7 +37,7 @@ def _entity_id(hass, entry, key: str) -> str:
 
 
 async def test_price_sensors_reflect_the_active_window(hass, freezer):
-    entry = MockConfigEntry(domain=DOMAIN, data=BASIC_DATA)
+    entry = MockConfigEntry(domain=DOMAIN, data=BASIC_DATA, version=2)
     entry.add_to_hass(hass)
 
     # Freeze rather than patch dt_util.now: the coordinator arms a real timer
@@ -66,7 +66,7 @@ async def test_price_sensors_reflect_the_active_window(hass, freezer):
 
 
 async def test_bonus_sensors_absent_when_disabled(hass, freezer):
-    entry = MockConfigEntry(domain=DOMAIN, data=BASIC_DATA)
+    entry = MockConfigEntry(domain=DOMAIN, data=BASIC_DATA, version=2)
     entry.add_to_hass(hass)
 
     freezer.move_to(datetime(2026, 7, 2, 8, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE))
@@ -110,7 +110,7 @@ async def test_next_price_change_ignores_export_only_boundaries(hass, freezer):
         {"start": "10:00", "end": "15:00", "rate": 0.5},
         {"start": "15:00", "end": "24:00", "rate": 0.5},
     ]
-    entry = MockConfigEntry(domain=DOMAIN, data=data)
+    entry = MockConfigEntry(domain=DOMAIN, data=data, version=2)
     entry.add_to_hass(hass)
 
     # Freeze rather than patch dt_util.now: the coordinator arms a real timer
@@ -136,3 +136,40 @@ async def test_next_price_change_ignores_export_only_boundaries(hass, freezer):
     assert dt_util.parse_datetime(state.state) == datetime(
         2026, 7, 3, 11, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE
     )
+
+
+async def test_device_is_not_badged_globird_without_globird_extras(hass, freezer):
+    entry = MockConfigEntry(domain=DOMAIN, data=BASIC_DATA, version=2)
+    entry.add_to_hass(hass)
+
+    freezer.move_to(datetime(2026, 7, 2, 8, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE))
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, entry.entry_id)})
+    assert device.manufacturer is None
+    assert device.model == "Time-of-use tariff"
+    assert device.name == "Test Plan"
+
+
+async def test_device_is_badged_globird_when_a_program_is_enabled(hass, freezer):
+    data = {
+        **BASIC_DATA,
+        CONF_ENABLE_ZWS: True,
+        "zws_rate_cents": 15.0,
+        "zws_cap_kwh": 10.0,
+        "zws_window_start": "15:00",
+        "zws_window_end": "21:00",
+        "zws_export_entity": "sensor.solar_export_energy",
+    }
+    entry = MockConfigEntry(domain=DOMAIN, data=data, version=2)
+    entry.add_to_hass(hass)
+
+    freezer.move_to(datetime(2026, 7, 2, 8, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE))
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, entry.entry_id)})
+    assert device.manufacturer == "GloBird Energy"
+    assert device.model == "ZEROHERO"
+    assert _entity_id(hass, entry, "zero_wasted_solar_remaining")

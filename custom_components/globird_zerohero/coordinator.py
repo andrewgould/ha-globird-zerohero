@@ -17,6 +17,7 @@ from datetime import date, datetime
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
     async_track_point_in_time,
@@ -25,9 +26,12 @@ from homeassistant.helpers.event import (
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_ENABLE_BONUS,
+    CONF_ENABLE_ZH,
+    CONF_ENABLE_ZL,
+    CONF_ENABLE_ZWS,
     CONF_EXPORT_WINDOWS,
     CONF_IMPORT_WINDOWS,
+    CONF_PLAN_LABEL,
     CONF_ZH_IMPORT_ENTITY,
     CONF_ZH_THRESHOLD_KWH_PER_HOUR,
     CONF_ZH_WINDOW_END,
@@ -41,11 +45,15 @@ from .const import (
     CONF_ZWS_RATE_C,
     CONF_ZWS_WINDOW_END,
     CONF_ZWS_WINDOW_START,
+    DEFAULT_PLAN_LABEL,
+    DOMAIN,
+    GLOBIRD_FEATURE_FLAGS,
     SIGNAL_UPDATE,
     WINDOW_END,
     WINDOW_RATE,
     WINDOW_START,
     ZL_MODE_EXTERNAL,
+    feature_enabled,
 )
 from .pricing import (
     PricingEngine,
@@ -80,21 +88,39 @@ def build_pricing_engine(config: dict) -> PricingEngine:
 
     zws = None
     zerolimits = None
-    if config.get(CONF_ENABLE_BONUS):
-        if CONF_ZWS_RATE_C in config:
-            zws = ZeroWastedSolarConfig(
-                rate_c=float(config[CONF_ZWS_RATE_C]),
-                cap_kwh=float(config[CONF_ZWS_CAP_KWH]),
-                window_start=parse_hhmm(config[CONF_ZWS_WINDOW_START]),
-                window_end=parse_hhmm(config[CONF_ZWS_WINDOW_END]),
-            )
-        if CONF_ZL_EXPORT_RATE_C in config:
-            zerolimits = ZeroLimitsConfig(
-                export_rate_c=float(config[CONF_ZL_EXPORT_RATE_C]),
-                import_surcharge_c=float(config[CONF_ZL_IMPORT_SURCHARGE_C]),
-            )
+    if feature_enabled(config, CONF_ENABLE_ZWS) and CONF_ZWS_RATE_C in config:
+        zws = ZeroWastedSolarConfig(
+            rate_c=float(config[CONF_ZWS_RATE_C]),
+            cap_kwh=float(config[CONF_ZWS_CAP_KWH]),
+            window_start=parse_hhmm(config[CONF_ZWS_WINDOW_START]),
+            window_end=parse_hhmm(config[CONF_ZWS_WINDOW_END]),
+        )
+    if feature_enabled(config, CONF_ENABLE_ZL) and CONF_ZL_EXPORT_RATE_C in config:
+        zerolimits = ZeroLimitsConfig(
+            export_rate_c=float(config[CONF_ZL_EXPORT_RATE_C]),
+            import_surcharge_c=float(config[CONF_ZL_IMPORT_SURCHARGE_C]),
+        )
 
     return PricingEngine(import_schedule, export_schedule, zws=zws, zerolimits=zerolimits)
+
+
+def build_device_info(entry: ConfigEntry, config: dict) -> DeviceInfo:
+    """Device card shared by both platforms.
+
+    Only badge the device as GloBird when one of their programs is actually
+    in use. Run as a plain time-of-use tariff -- the default, and what a
+    customer of any other retailer wants -- it just carries the plan label.
+    """
+    if any(feature_enabled(config, flag) for flag in GLOBIRD_FEATURE_FLAGS):
+        manufacturer, model = "GloBird Energy", "ZEROHERO"
+    else:
+        manufacturer, model = None, "Time-of-use tariff"
+    return DeviceInfo(
+        identifiers={(DOMAIN, entry.entry_id)},
+        name=config.get(CONF_PLAN_LABEL, DEFAULT_PLAN_LABEL),
+        manufacturer=manufacturer,
+        model=model,
+    )
 
 
 @dataclass
@@ -136,14 +162,20 @@ class GlobirdZeroHeroData:
     def signal(self) -> str:
         return SIGNAL_UPDATE.format(self.entry.entry_id)
 
+    @property
+    def _zh_enabled(self) -> bool:
+        return feature_enabled(self.config, CONF_ENABLE_ZH) and bool(
+            self.config.get(CONF_ZH_WINDOW_START)
+        )
+
     async def async_setup(self) -> None:
-        zh_entity = self.config.get(CONF_ZH_IMPORT_ENTITY)
-        zws_entity = self.config.get(CONF_ZWS_EXPORT_ENTITY)
-        zl_entity = (
-            self.config.get(CONF_ZL_ENTITY)
-            if self.config.get(CONF_ZL_MODE) == ZL_MODE_EXTERNAL
+        zh_entity = self.config.get(CONF_ZH_IMPORT_ENTITY) if self._zh_enabled else None
+        zws_entity = (
+            self.config.get(CONF_ZWS_EXPORT_ENTITY)
+            if feature_enabled(self.config, CONF_ENABLE_ZWS)
             else None
         )
+        zl_entity = self._zl_entity()
 
         tracked = [e for e in (zh_entity, zws_entity, zl_entity) if e]
         if tracked:
@@ -166,6 +198,14 @@ class GlobirdZeroHeroData:
             unsub()
         self._unsub_listeners.clear()
 
+    def _zl_entity(self) -> str | None:
+        """The external critical-peak helper, if ZeroLimits is on and set to use one."""
+        if not feature_enabled(self.config, CONF_ENABLE_ZL):
+            return None
+        if self.config.get(CONF_ZL_MODE) != ZL_MODE_EXTERNAL:
+            return None
+        return self.config.get(CONF_ZL_ENTITY)
+
     @callback
     def _handle_entity_change(self, event: Event[EventStateChangedData]) -> None:
         entity_id = event.data["entity_id"]
@@ -173,11 +213,7 @@ class GlobirdZeroHeroData:
         if new_state is None:
             return
 
-        zl_entity = (
-            self.config.get(CONF_ZL_ENTITY)
-            if self.config.get(CONF_ZL_MODE) == ZL_MODE_EXTERNAL
-            else None
-        )
+        zl_entity = self._zl_entity()
         if entity_id == zl_entity:
             self.critical_peak_active = new_state.state == "on"
         elif entity_id == self.config.get(CONF_ZWS_EXPORT_ENTITY):
@@ -210,12 +246,10 @@ class GlobirdZeroHeroData:
         # unknown until the window opens and a snapshot is taken.
 
     def _update_zh_eligibility(self, state) -> None:
-        zh_start = self.config.get(CONF_ZH_WINDOW_START)
-        zh_end = self.config.get(CONF_ZH_WINDOW_END)
-        if not zh_start:
+        if not self._zh_enabled:
             return
-        window_start = parse_hhmm(zh_start)
-        window_end = parse_hhmm(zh_end)
+        window_start = parse_hhmm(self.config[CONF_ZH_WINDOW_START])
+        window_end = parse_hhmm(self.config[CONF_ZH_WINDOW_END])
         now = dt_util.now()
         today = now.date()
 
@@ -297,11 +331,10 @@ class GlobirdZeroHeroData:
         else:
             self.zws_remaining_kwh_value = None
 
-        zh_start = self.config.get(CONF_ZH_WINDOW_START)
-        if zh_start:
+        if self._zh_enabled:
             self.zh_status = zerohero_status(
                 now,
-                parse_hhmm(zh_start),
+                parse_hhmm(self.config[CONF_ZH_WINDOW_START]),
                 parse_hhmm(self.config[CONF_ZH_WINDOW_END]),
                 self.zh_still_eligible,
             )

@@ -21,7 +21,9 @@ FULL_INPUT_BY_STEP = {
     "user": {
         "plan_label": "Test Plan",
         "daily_supply_charge_cents": 100.0,
-        "enable_bonus_features": True,
+        "enable_zerohero": True,
+        "enable_zws": True,
+        "enable_zerolimits": True,
     },
     "import_schedule": {},
     "export_schedule": {},
@@ -76,7 +78,9 @@ async def test_zerolimits_step_schema_is_serializable_with_and_without_entity(ha
         data={
             "plan_label": "Test Plan",
             "daily_supply_charge_cents": 100.0,
-            "enable_bonus_features": True,
+            "enable_zerohero": True,
+            "enable_zws": True,
+            "enable_zerolimits": True,
             "import_windows": [{"start": "00:00", "end": "24:00", "rate": 25.5}],
             "export_windows": [{"start": "00:00", "end": "24:00", "rate": 5.0}],
         },
@@ -88,7 +92,9 @@ async def test_zerolimits_step_schema_is_serializable_with_and_without_entity(ha
         {
             "plan_label": "Test Plan",
             "daily_supply_charge_cents": 100.0,
-            "enable_bonus_features": True,
+            "enable_zerohero": True,
+            "enable_zws": True,
+            "enable_zerolimits": True,
         },
         {},
         {},

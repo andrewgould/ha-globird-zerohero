@@ -5,7 +5,9 @@ from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.globird_zerohero.const import (
-    CONF_ENABLE_BONUS,
+    CONF_ENABLE_ZH,
+    CONF_ENABLE_ZL,
+    CONF_ENABLE_ZWS,
     CONF_EXPORT_WINDOWS,
     CONF_IMPORT_WINDOWS,
     CONF_SUPPLY_CHARGE_C,
@@ -15,8 +17,12 @@ from custom_components.globird_zerohero.const import (
 USER_INPUT = {
     "plan_label": "Jemena ZEROHERO Flexible Rate",
     "daily_supply_charge_cents": 113.3,
-    "enable_bonus_features": False,
+    "enable_zerohero": False,
+    "enable_zws": False,
+    "enable_zerolimits": False,
 }
+
+ALL_EXTRAS = {"enable_zerohero": True, "enable_zws": True, "enable_zerolimits": True}
 
 ZH_INPUT = {
     "zerohero_threshold_kwh_per_hour": 0.03,
@@ -41,7 +47,7 @@ ZL_INPUT = {
 }
 
 
-async def test_happy_path_without_bonus_features(hass):
+async def test_happy_path_without_globird_extras(hass):
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
@@ -59,15 +65,17 @@ async def test_happy_path_without_bonus_features(hass):
     assert result["data"][CONF_SUPPLY_CHARGE_C] == 113.3
     assert result["data"][CONF_IMPORT_WINDOWS]
     assert result["data"][CONF_EXPORT_WINDOWS]
-    assert result["data"][CONF_ENABLE_BONUS] is False
+    assert result["data"][CONF_ENABLE_ZH] is False
+    assert result["data"][CONF_ENABLE_ZWS] is False
+    assert result["data"][CONF_ENABLE_ZL] is False
 
 
-async def test_happy_path_with_bonus_features(hass):
+async def test_happy_path_with_all_globird_extras(hass):
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {**USER_INPUT, "enable_bonus_features": True}
+        result["flow_id"], {**USER_INPUT, **ALL_EXTRAS}
     )
     assert result["step_id"] == "import_schedule"
 
@@ -108,6 +116,7 @@ async def test_import_schedule_gap_reshows_form_with_error(hass):
 
 async def test_options_flow_round_trip(hass):
     entry = MockConfigEntry(
+        version=2,
         domain=DOMAIN,
         data={
             **USER_INPUT,
@@ -132,3 +141,24 @@ async def test_options_flow_round_trip(hass):
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_SUPPLY_CHARGE_C] == 150.0
+
+
+async def test_only_the_extras_you_asked_for_are_stepped_through(hass):
+    """Each program is independent -- enabling ZeroWastedSolar alone skips the rest."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**USER_INPUT, "enable_zws": True}
+    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    assert result["step_id"] == "export_schedule"
+
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    assert result["step_id"] == "zerowastedsolar"
+
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], ZWS_INPUT)
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_ENABLE_ZWS] is True
+    assert result["data"][CONF_ENABLE_ZH] is False
+    assert "zerohero_import_entity" not in result["data"]

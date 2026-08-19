@@ -1,14 +1,16 @@
 {
-  "title": "GloBird ZEROHERO",
+  "title": "Time-of-use tariff (GloBird ZEROHERO)",
   "config": {
     "step": {
       "user": {
-        "title": "GloBird ZEROHERO",
-        "description": "Set up your ZEROHERO plan. You'll enter your import/export rate schedule next -- have your bill or GloBird's price fact sheet handy.",
+        "title": "Your electricity plan",
+        "description": "Set up your time-of-use plan -- any retailer, not just GloBird. You'll enter your import/export rate schedule next, so have your bill or your retailer's price fact sheet handy. The GloBird ZEROHERO extras below are optional: leave them off unless you're on that plan.",
         "data": {
           "plan_label": "Plan label",
           "daily_supply_charge_cents": "Daily supply charge (c/day)",
-          "enable_bonus_features": "Track ZeroHero credit, ZeroWastedSolar boost and ZeroLimits critical peak events"
+          "enable_zerohero": "GloBird ZeroHero: daily credit for a quiet evening peak",
+          "enable_zws": "GloBird ZeroWastedSolar: boosted export rate up to a daily cap",
+          "enable_zerolimits": "GloBird ZeroLimits: critical peak event pricing"
         }
       },
       "import_schedule": {
@@ -99,18 +101,20 @@
       "schedule_invalid_time": "One of the times entered isn't a valid HH:MM value."
     },
     "abort": {
-      "already_configured": "This GloBird ZEROHERO account is already configured."
+      "already_configured": "This plan is already configured."
     }
   },
   "options": {
     "step": {
       "user": {
-        "title": "GloBird ZEROHERO",
-        "description": "Set up your ZEROHERO plan. You'll enter your import/export rate schedule next -- have your bill or GloBird's price fact sheet handy.",
+        "title": "Your electricity plan",
+        "description": "Set up your time-of-use plan -- any retailer, not just GloBird. You'll enter your import/export rate schedule next, so have your bill or your retailer's price fact sheet handy. The GloBird ZEROHERO extras below are optional: leave them off unless you're on that plan.",
         "data": {
           "plan_label": "Plan label",
           "daily_supply_charge_cents": "Daily supply charge (c/day)",
-          "enable_bonus_features": "Track ZeroHero credit, ZeroWastedSolar boost and ZeroLimits critical peak events"
+          "enable_zerohero": "GloBird ZeroHero: daily credit for a quiet evening peak",
+          "enable_zws": "GloBird ZeroWastedSolar: boosted export rate up to a daily cap",
+          "enable_zerolimits": "GloBird ZeroLimits: critical peak event pricing"
         }
       },
       "import_schedule": {

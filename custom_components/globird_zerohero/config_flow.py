@@ -1,4 +1,4 @@
-"""Config flow for GloBird ZEROHERO.
+"""Config flow for the time-of-use tariff integration.
 
 A single form for all settings would be unusable, so setup is split into a
 handful of steps. ConfigFlow and OptionsFlow share the same schema builders
@@ -13,7 +13,9 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_ENABLE_BONUS,
+    CONF_ENABLE_ZH,
+    CONF_ENABLE_ZL,
+    CONF_ENABLE_ZWS,
     CONF_EXPORT_WINDOWS,
     CONF_IMPORT_WINDOWS,
     CONF_PLAN_LABEL,
@@ -117,7 +119,12 @@ def _user_schema(defaults: dict) -> vol.Schema:
                 CONF_SUPPLY_CHARGE_C,
                 default=defaults.get(CONF_SUPPLY_CHARGE_C, DEFAULT_SUPPLY_CHARGE_C),
             ): vol.Coerce(float),
-            vol.Required(CONF_ENABLE_BONUS, default=defaults.get(CONF_ENABLE_BONUS, True)): bool,
+            # GloBird plan extras: independently opt-in, off by default. Most
+            # installs are a plain time-of-use tariff on some other retailer
+            # and should never be asked about ZeroHero.
+            vol.Required(CONF_ENABLE_ZH, default=defaults.get(CONF_ENABLE_ZH, False)): bool,
+            vol.Required(CONF_ENABLE_ZWS, default=defaults.get(CONF_ENABLE_ZWS, False)): bool,
+            vol.Required(CONF_ENABLE_ZL, default=defaults.get(CONF_ENABLE_ZL, False)): bool,
         }
     )
 
@@ -243,19 +250,35 @@ class _FlowStepsMixin:
             validation_errors = _validate_windows(windows)
             if not validation_errors:
                 self._data[CONF_EXPORT_WINDOWS] = windows
-                if self._data.get(CONF_ENABLE_BONUS):
-                    return await self.async_step_zerohero()
-                return self._finish()
+                return await self._async_next_extra_step()
             errors["base"] = validation_errors[0]
         defaults = self._working_defaults().get(CONF_EXPORT_WINDOWS, DEFAULT_EXPORT_WINDOWS)
         return self.async_show_form(
             step_id="export_schedule", data_schema=_window_schema("exp", defaults), errors=errors
         )
 
+    async def _async_next_extra_step(self, after: str | None = None):
+        """Walk on to the next enabled GloBird extra, or finish.
+
+        Each extra is toggled on its own, so the tail of the flow is whatever
+        subset the user asked for -- with none of them on (the default) the
+        schedule steps are the whole flow.
+        """
+        steps = [
+            (CONF_ENABLE_ZH, self.async_step_zerohero),
+            (CONF_ENABLE_ZWS, self.async_step_zerowastedsolar),
+            (CONF_ENABLE_ZL, self.async_step_zerolimits),
+        ]
+        remaining = steps[[flag for flag, _ in steps].index(after) + 1 :] if after else steps
+        for flag, step in remaining:
+            if self._data.get(flag):
+                return await step()
+        return self._finish()
+
     async def async_step_zerohero(self, user_input: dict | None = None):
         if user_input is not None:
             self._data.update(user_input)
-            return await self.async_step_zerowastedsolar()
+            return await self._async_next_extra_step(after=CONF_ENABLE_ZH)
         return self.async_show_form(
             step_id="zerohero", data_schema=_zerohero_schema(self._working_defaults())
         )
@@ -263,7 +286,7 @@ class _FlowStepsMixin:
     async def async_step_zerowastedsolar(self, user_input: dict | None = None):
         if user_input is not None:
             self._data.update(user_input)
-            return await self.async_step_zerolimits()
+            return await self._async_next_extra_step(after=CONF_ENABLE_ZWS)
         return self.async_show_form(
             step_id="zerowastedsolar", data_schema=_zws_schema(self._working_defaults())
         )
@@ -281,7 +304,7 @@ class _FlowStepsMixin:
 
 
 class GlobirdZeroHeroConfigFlow(_FlowStepsMixin, ConfigFlow, domain=DOMAIN):
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         super().__init__()

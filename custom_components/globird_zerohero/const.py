@@ -1,4 +1,4 @@
-"""Constants for the GloBird ZEROHERO integration."""
+"""Constants for the time-of-use tariff integration."""
 
 from __future__ import annotations
 
@@ -10,10 +10,35 @@ CENTS_PER_DOLLAR = 100
 # --- Plan-level config ---
 CONF_PLAN_LABEL = "plan_label"
 CONF_SUPPLY_CHARGE_C = "daily_supply_charge_cents"
-CONF_ENABLE_BONUS = "enable_bonus_features"
 
-DEFAULT_PLAN_LABEL = "Jemena ZEROHERO Flexible Rate"
+DEFAULT_PLAN_LABEL = "Electricity plan"
 DEFAULT_SUPPLY_CHARGE_C = 113.3
+
+# --- GloBird plan extras ---
+# The core of this integration is a plain time-of-use tariff, which is what
+# most people run it as. The three GloBird ZEROHERO programs below are opt-in
+# per feature and off by default; nothing about them is loaded unless asked
+# for. Entries created before 1.0 had a single `enable_bonus_features` toggle
+# covering all three -- async_migrate_entry rewrites those into these flags.
+CONF_ENABLE_ZH = "enable_zerohero"
+CONF_ENABLE_ZWS = "enable_zws"
+CONF_ENABLE_ZL = "enable_zerolimits"
+CONF_ENABLE_BONUS = "enable_bonus_features"  # legacy, migration only
+
+GLOBIRD_FEATURE_FLAGS = (CONF_ENABLE_ZH, CONF_ENABLE_ZWS, CONF_ENABLE_ZL)
+
+
+def feature_enabled(config: dict, flag: str) -> bool:
+    """Whether a GloBird plan extra is switched on for this entry.
+
+    Falls back to the pre-1.0 lumped toggle for any entry that somehow
+    reaches runtime unmigrated, so a downgrade/upgrade round trip can't
+    silently drop someone's ZeroHero tracking.
+    """
+    if flag in config:
+        return bool(config[flag])
+    return bool(config.get(CONF_ENABLE_BONUS))
+
 
 # --- TOU schedule slots ---
 # Config flow forms can't do a truly dynamic repeating list, so we expose a
@@ -30,11 +55,11 @@ WINDOW_START = "start"
 WINDOW_END = "end"
 WINDOW_RATE = "rate"
 
-# Editable starting defaults matching GloBird's published Jemena ZEROHERO
-# Flexible Rate schedule at time of writing. These are pre-filled suggestions
-# only -- the config flow never hardcodes pricing logic, the user's entered
-# values are always what's used at runtime. Verify against your current bill
-# / GloBird's price fact sheet before relying on these.
+# Editable starting defaults, taken from GloBird's published Jemena ZEROHERO
+# Flexible Rate schedule at time of writing. They're an example shape for a
+# free-power-window plan and nothing more: the config flow never hardcodes
+# pricing logic, the user's entered values are always what's used at runtime.
+# Whichever retailer you're on, check these against your own bill.
 DEFAULT_IMPORT_WINDOWS: list[dict[str, str | float]] = [
     {WINDOW_START: "00:00", WINDOW_END: "11:00", WINDOW_RATE: 25.5},
     {WINDOW_START: "11:00", WINDOW_END: "14:00", WINDOW_RATE: 0.0},

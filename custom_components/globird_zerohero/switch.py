@@ -10,19 +10,17 @@ from __future__ import annotations
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
-    CONF_ENABLE_BONUS,
-    CONF_PLAN_LABEL,
+    CONF_ENABLE_ZL,
     CONF_ZL_MODE,
-    DEFAULT_PLAN_LABEL,
     DOMAIN,
     ZL_MODE_INTERNAL,
+    feature_enabled,
 )
-from .coordinator import GlobirdZeroHeroData
+from .coordinator import GlobirdZeroHeroData, build_device_info
 
 
 async def async_setup_entry(
@@ -32,7 +30,7 @@ async def async_setup_entry(
     config = data.config
 
     if (
-        config.get(CONF_ENABLE_BONUS)
+        feature_enabled(config, CONF_ENABLE_ZL)
         and config.get(CONF_ZL_MODE, ZL_MODE_INTERNAL) == ZL_MODE_INTERNAL
     ):
         async_add_entities([GlobirdCriticalPeakSwitch(entry, data)])
@@ -47,12 +45,7 @@ class GlobirdCriticalPeakSwitch(SwitchEntity, RestoreEntity):
         self.data = data
         self._attr_unique_id = f"{entry.entry_id}_zerolimits_critical_peak"
         self._attr_name = "ZeroLimits critical peak active"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=data.config.get(CONF_PLAN_LABEL, DEFAULT_PLAN_LABEL),
-            manufacturer="GloBird Energy",
-            model="ZEROHERO",
-        )
+        self._attr_device_info = build_device_info(entry, data.config)
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
