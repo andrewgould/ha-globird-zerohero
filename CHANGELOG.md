@@ -4,6 +4,23 @@ All notable changes to this integration are recorded here. Versions follow
 [semantic versioning](https://semver.org/); the version in `manifest.json` is
 what HACS installs, and each release tag must match it.
 
+## 1.0.1
+
+No change to pricing or entities -- this release brings the repository up to
+the usual HACS standard.
+
+- **Icon.** The integration now ships its own icon (a 24-hour dial split into
+  tariff windows) in `brand/`, which Home Assistant 2026.3+ shows on the
+  integration and device pages instead of the generic placeholder.
+- **README**: badges, an "Open in HACS" button, an "Add integration" button,
+  and manual install steps for anyone not using HACS.
+- **Releases always carry notes.** The release workflow now refuses to publish
+  a tag with no matching `CHANGELOG.md` section, rather than falling back to an
+  empty auto-generated body.
+- CI now lints with ruff and runs hassfest + HACS validation alongside the
+  tests in one workflow, still weekly as well as on every push. (GitHub had
+  switched the old weekly validation off after two quiet months.)
+
 ## 1.0.0
 
 First tagged release, and the point at which the integration stopped assuming

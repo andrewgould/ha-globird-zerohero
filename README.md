@@ -1,4 +1,10 @@
+<img src="custom_components/globird_zerohero/brand/icon@2x.png" alt="" width="96" align="right">
+
 # Time-of-use tariff for Home Assistant (with optional GloBird ZEROHERO extras)
+
+[![CI](https://github.com/andrewgould/ha-globird-zerohero/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewgould/ha-globird-zerohero/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/andrewgould/ha-globird-zerohero)](https://github.com/andrewgould/ha-globird-zerohero/releases)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
 
 Live import/export price sensors for a **fixed time-of-use electricity plan**, built to plug directly into Home Assistant's Energy dashboard cost tracking. Works with any retailer whose rates are a fixed daily schedule; it was written for [GloBird Energy](https://www.globirdenergy.com.au/)'s **ZEROHERO** plan, whose extras it can additionally track if you're on it.
 
@@ -23,11 +29,25 @@ Two existing projects were checked before building this and neither covers this 
   - **ZeroWastedSolar** kWh remaining today
   - **ZeroLimits**: a switch to manually flag a critical peak event (or point the integration at an `input_boolean`/`binary_sensor` you already use for this)
 
-## Installation (HACS custom repository)
+## Install
 
-This isn't in the default HACS store. In HACS: **⋮ menu -> Custom repositories**, add `https://github.com/andrewgould/ha-globird-zerohero` as an **Integration**, then install "Time-of-use tariff (GloBird ZEROHERO)" and restart Home Assistant. Then **Settings -> Devices & services -> Add integration** and search for it.
+Through [HACS](https://hacs.xyz), as a custom repository:
 
-HACS installs from [tagged releases](https://github.com/andrewgould/ha-globird-zerohero/releases), so you get update notifications in HACS as new versions are published. See [CHANGELOG.md](CHANGELOG.md) for what's in each one.
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=andrewgould&repository=ha-globird-zerohero&category=integration)
+
+Or in HACS, **⋮ → Custom repositories**, add `https://github.com/andrewgould/ha-globird-zerohero` as an **Integration**, then download
+**Time-of-use tariff (GloBird ZEROHERO)** and restart Home Assistant.
+
+Without HACS, unzip `globird_zerohero.zip` from the [latest release](https://github.com/andrewgould/ha-globird-zerohero/releases/latest) into
+`custom_components/globird_zerohero` and restart.
+
+Then **Settings → Devices & services → Add integration** and search for *Time-of-use tariff*:
+
+[![Add integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=globird_zerohero)
+
+Needs Home Assistant 2024.6 or later. The icon shows from 2026.3, which reads it from the
+integration's own `brand/` folder. HACS installs from [tagged releases](https://github.com/andrewgould/ha-globird-zerohero/releases), so new
+versions appear as updates; [CHANGELOG.md](CHANGELOG.md) says what's in each one.
 
 ## Setup
 
@@ -62,19 +82,28 @@ GloBird announces these ad-hoc via its app with no public API to detect them aut
 ## Development
 
 ```bash
-pip install -r requirements_test.txt
-pytest
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements_test.txt ruff
+ruff check . && pytest -q
 ```
 
 `schedule.py` and `pricing.py` are the core pricing algorithm and are framework-free (no Home Assistant imports), so most of the test suite runs as plain pytest with no `hass` fixture. `coordinator.py`, `config_flow.py`, `sensor.py`, and `switch.py` are the Home Assistant integration glue.
 
-### Cutting a release
+## Releasing
 
-1. Update `CHANGELOG.md` with a `## X.Y.Z` section.
-2. Bump `version` in `custom_components/globird_zerohero/manifest.json` to match.
-3. Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+Bump `version` in `custom_components/globird_zerohero/manifest.json`, add a matching `## X.Y.Z`
+section to `CHANGELOG.md` saying what changed and why it matters, then tag and push:
 
-The **Release** workflow refuses to publish if the tag and the manifest version disagree, runs the test suite, then publishes a GitHub release with the CHANGELOG section as its notes and a `globird_zerohero.zip` asset -- which is what HACS installs.
+```bash
+git tag vX.Y.Z && git push origin vX.Y.Z
+```
+
+The **Release** workflow checks the tag against the manifest, runs the tests, builds
+`globird_zerohero.zip` and publishes the release with that changelog section as its notes. It
+refuses to publish a version with no changelog section. HACS installs from the zip.
+
+The icon is drawn by `assets/make_icons.py`, which writes the PNGs into the integration's `brand/`
+folder.
 
 ## License
 

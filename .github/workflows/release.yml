@@ -45,17 +45,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          notes_arg=(--generate-notes)
-          # Prefer the hand-written CHANGELOG section for this version, if there is one.
-          if awk -v v="## ${GITHUB_REF_NAME#v}" '$0 ~ "^"v" " || $0 == v {found=1} END {exit !found}' CHANGELOG.md; then
-            awk -v v="${GITHUB_REF_NAME#v}" '
-              $0 ~ "^## "v"( |$)" {inside=1; next}
-              /^## / {inside=0}
-              inside {print}
-            ' CHANGELOG.md > release-notes.md
-            notes_arg=(--notes-file release-notes.md)
+          # The notes are this version's section of CHANGELOG.md. A tag without
+          # one fails rather than publishing a release that says nothing.
+          awk -v v="${GITHUB_REF_NAME#v}" '
+            $0 ~ "^## "v"( |$)" {inside=1; next}
+            /^## / {inside=0}
+            inside {print}
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::CHANGELOG.md has no '## ${GITHUB_REF_NAME#v}' section. Write one and re-tag."
+            exit 1
           fi
-          gh release create "$GITHUB_REF_NAME" \
-            --title "$GITHUB_REF_NAME" \
-            "${notes_arg[@]}" \
-            globird_zerohero.zip
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md globird_zerohero.zip
